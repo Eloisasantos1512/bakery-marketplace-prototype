@@ -29,12 +29,32 @@ with real-time production tracking and delivery dispatching.
 ```
 supabase/
   migrations/
-    001_init_schema.sql     # full DB schema, RLS, triggers, realtime, storage bucket
+    001_init_schema.sql            # full DB schema, RLS, triggers, realtime, storage bucket
+    002_reorder_intelligence.sql   # recency/frequency reorder suggestions + account-health view
 src/
   components/
     CustomerOrderTracker.jsx      # 7-stage live tracker + pending-approval screen
     AdminApprovalDashboard.jsx    # approval queue console
+    ReorderSuggestions.jsx        # "hora de repor" — one-click reorder card
+explicacao-cliente-reorder-inteligente.md   # how to pitch the reorder feature to the client
 ```
+
+## Reorder Intelligence (recency/frequency, no ML)
+
+`002_reorder_intelligence.sql` adds:
+
+- `customer_product_patterns` — a view aggregating, per customer × product, how often
+  they buy it (`avg_interval_days`), how much (`avg_quantity`), and when they last did.
+- `get_reorder_suggestions(customer_id)` — an RPC the customer app calls to render the
+  "Hora de repor" card. Returns products that are statistically overdue based on the
+  customer's own ordering rhythm.
+- `account_health_alerts` — the same data from the supplier's side: accounts whose buying
+  pattern has gone quiet relative to their own history. This is the natural hook for an
+  N8N workflow (poll this view → notify the sales rep in Slack/CRM) or, later, an LLM
+  summary layer.
+
+No external model, no cold-start problem beyond 2 historical orders per product. See
+`explicacao-cliente-reorder-inteligente.md` for the client-facing pitch.
 
 ## Getting started
 
