@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense, lazy } from "react";
 import {
   ClipboardList,
   Blend,
@@ -12,6 +12,11 @@ import {
   Check,
   Wheat,
 } from "lucide-react";
+
+// Lazy: mapbox-gl é uma lib pesada (~600KB). Só carrega quando o pedido
+// realmente chega em "Left for Delivery" — o cliente acompanhando as
+// etapas de produção (que são a maioria do tempo) nunca paga esse custo.
+const DeliveryMap = lazy(() => import("./DeliveryMap"));
 
 /**
  * ─────────────────────────────────────────────────────────────────────────
@@ -250,36 +255,45 @@ export default function CustomerOrderTracker({ approvalStatus = "approved" }) {
             </ul>
           </div>
 
-          {/* Driver contact — appears once "Left for Delivery" */}
+          {/* Driver tracking — appears once "Left for Delivery" */}
           {currentIndex === STAGES.length - 1 && (
-            <div
-              className="mt-6 rounded-xl p-4 flex items-center justify-between gap-3"
-              style={{ background: "#2B2620" }}
-            >
-              <div>
-                <p className="text-[11px] uppercase tracking-wider opacity-60" style={{ color: "#F2EDE3" }}>
-                  A caminho com
+            <div className="mt-6">
+              <Suspense
+                fallback={
+                  <div
+                    className="rounded-xl flex items-center justify-center text-sm"
+                    style={{ height: 280, background: "#F1EADA", color: "#8A7C60" }}
+                  >
+                    Carregando mapa...
+                  </div>
+                }
+              >
+                <DeliveryMap driverId={order.driver.id} driverName={order.driver.name} />
+              </Suspense>
+              <div
+                className="mt-2 rounded-xl p-3 flex items-center justify-between gap-3"
+                style={{ background: "#2B2620" }}
+              >
+                <p className="text-sm font-semibold" style={{ color: "#F2EDE3" }}>
+                  Fale com {order.driver.name}
                 </p>
-                <p className="font-semibold" style={{ color: "#F2EDE3" }}>
-                  {order.driver.name}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <a
-                  href={`tel:${order.driver.phone}`}
-                  className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
-                  style={{ background: "#C99A2E" }}
-                  aria-label="Ligar para o motorista"
-                >
-                  <Phone size={17} color="#2B2620" strokeWidth={2.3} />
-                </a>
-                <button
-                  className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
-                  style={{ background: "#4A4237" }}
-                  aria-label="Chat com o motorista"
-                >
-                  <MessageCircle size={17} color="#F2EDE3" strokeWidth={2.3} />
-                </button>
+                <div className="flex gap-2">
+                  <a
+                    href={`tel:${order.driver.phone}`}
+                    className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
+                    style={{ background: "#C99A2E" }}
+                    aria-label="Ligar para o motorista"
+                  >
+                    <Phone size={17} color="#2B2620" strokeWidth={2.3} />
+                  </a>
+                  <button
+                    className="flex items-center justify-center w-10 h-10 rounded-full transition-transform hover:scale-105"
+                    style={{ background: "#4A4237" }}
+                    aria-label="Chat com o motorista"
+                  >
+                    <MessageCircle size={17} color="#F2EDE3" strokeWidth={2.3} />
+                  </button>
+                </div>
               </div>
             </div>
           )}

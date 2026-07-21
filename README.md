@@ -67,6 +67,51 @@ a do frontend só organiza a experiência**:
 normal (que cai como `customer`/`pending`), rode
 `supabase/promote_first_admin.sql` no SQL Editor com seu e-mail.
 
+## Fluxos de autenticação
+
+- `/cadastro` — signup com nome da empresa, contato e telefone. Esses dados
+  vão como `options.data` no `supabase.auth.signUp()` e o trigger
+  `handle_new_user` (atualizado em `004_signup_metadata.sql`) já popula
+  `profiles.company_name`/`full_name`/`phone` automaticamente — sem
+  necessidade de um segundo insert manual.
+- `/esqueci-senha` → `/redefinir-senha` — fluxo padrão do Supabase Auth
+  (`resetPasswordForEmail` + `updateUser`). **Importante:** configure a URL
+  de redirect no painel do Supabase em **Authentication → URL Configuration
+  → Redirect URLs**, adicionando `<sua-url>/redefinir-senha` (em dev, algo
+  como `http://localhost:5173/redefinir-senha` ou a URL do seu Codespace).
+  Sem isso, o link do e-mail não redireciona corretamente.
+
+## Tracking de entrega ao vivo (Mapbox)
+
+Depois que o pedido chega em "Left for Delivery", o `CustomerOrderTracker`
+troca o card estático de contato do motorista por um mapa ao vivo
+(`DeliveryMap.jsx`), com posição animada, rota calculada e ETA em tempo real.
+
+**Por que Mapbox e não Google Maps:** é o padrão de mercado pra tracking de
+entrega (usado por DHL, Grubhub, Instacart), tem streaming de dados em tempo
+real nativo, e sai bem mais barato em geocodificação e carregamento de mapa
+na escala que uma B2B como essa opera — free tier de 50k carregamentos/mês
+já cobre o protótipo inteiro e o early-stage.
+
+**Pipeline de dados:**
+1. App do motorista chama `navigator.geolocation.watchPosition()` (via o hook
+   `useBroadcastLocation.js`) e faz upsert em `driver_locations` a cada ~4s.
+2. RLS em `driver_locations` (ver `005_driver_locations.sql`) garante que um
+   cliente só enxerga a posição do motorista **enquanto** esse motorista está
+   atribuído a um pedido **dele** com status `delivery` — não antes, não
+   depois, não de outro cliente.
+3. `DeliveryMap.jsx` assina essa tabela via Supabase Realtime, anima o
+   marcador suavemente entre posições (em vez de "pular"), e consulta a
+   Mapbox Directions API pra desenhar a rota e recalcular o ETA.
+
+**Setup:** crie uma conta em mapbox.com, copie o "Default public token", e
+adicione `VITE_MAPBOX_TOKEN` no `.env.local`.
+
+**Performance:** `mapbox-gl` é uma lib pesada (~600KB gzip). `DeliveryMap` é
+importado via `React.lazy()` dentro do tracker — só entra no bundle quando o
+pedido realmente chega na etapa de entrega, então quem está só acompanhando
+a produção (a maior parte do tempo) nunca paga esse custo de carregamento.
+
 ## Reorder Intelligence (recency/frequency, no ML)
 
 `002_reorder_intelligence.sql` adds:
