@@ -39,6 +39,34 @@ src/
 explicacao-cliente-reorder-inteligente.md   # how to pitch the reorder feature to the client
 ```
 
+## Controle de acesso (Admin vs Cliente)
+
+Duas camadas independentes — **a do banco é a que realmente protege os dados;
+a do frontend só organiza a experiência**:
+
+1. **Banco (a barreira real):** RLS em toda tabela, mais funções
+   `SECURITY DEFINER` para relatórios administrativos que agregam dados de
+   todos os clientes (`get_sales_report`, `get_driver_performance` em
+   `003_admin_reports_rbac.sql`). Essas funções verificam `is_admin()`
+   explicitamente e lançam erro se quem chamou não for admin — isso vale
+   mesmo se alguém chamar a API direto, sem passar pela interface.
+2. **Frontend (experiência, não segurança):** `AuthContext` carrega
+   `profiles.role` e `profiles.status` uma vez, no login. `ProtectedRoute`
+   usa isso pra decidir o que renderizar:
+   - não logado → `/login`
+   - `status = 'pending'` → `/pending` (contato do representante)
+   - `status = 'rejected'` → `/rejected`
+   - logado + aprovado, mas role errada pra rota → `/nao-autorizado`
+
+   As rotas ficam em duas árvores completamente separadas — `/admin/*` (papel
+   `admin`: aprovações, tracking, motoristas, relatórios) e `/` (papel
+   `customer`: pedidos, catálogo, reposição) — cada uma com seu próprio
+   layout e menu, então um cliente nunca vê sequer o link pra tela de admin.
+
+**Promovendo seu primeiro admin:** depois de criar sua conta pelo signup
+normal (que cai como `customer`/`pending`), rode
+`supabase/promote_first_admin.sql` no SQL Editor com seu e-mail.
+
 ## Reorder Intelligence (recency/frequency, no ML)
 
 `002_reorder_intelligence.sql` adds:
