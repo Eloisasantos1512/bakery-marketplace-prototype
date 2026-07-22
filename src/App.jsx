@@ -22,6 +22,10 @@ import TrackingPage from "./pages/admin/TrackingPage";
 import MotoristasPage from "./pages/admin/MotoristasPage";
 import SalesReportsPage from "./pages/admin/SalesReportsPage";
 
+import DriverLayout from "./components/layouts/DriverLayout";
+import DeliveriesPage from "./pages/driver/DeliveriesPage";
+import DeliveryDetailPage from "./pages/driver/DeliveryDetailPage";
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -68,6 +72,19 @@ export default function App() {
             <Route path="pedidos" element={<TrackingPage />} />
             <Route path="motoristas" element={<MotoristasPage />} />
             <Route path="relatorios" element={<SalesReportsPage />} />
+          </Route>
+
+          {/* Driver-only branch */}
+          <Route
+            path="/entregas"
+            element={
+              <ProtectedRoute allowedRoles={["driver"]}>
+                <DriverLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DeliveriesPage />} />
+            <Route path=":id" element={<DeliveryDetailPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/login" replace />} />

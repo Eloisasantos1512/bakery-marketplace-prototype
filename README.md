@@ -81,6 +81,17 @@ normal (que cai como `customer`/`pending`), rode
   como `http://localhost:5173/redefinir-senha` ou a URL do seu Codespace).
   Sem isso, o link do e-mail não redireciona corretamente.
 
+## App do motorista
+
+`/entregas` — role `driver`. Lista de entregas atribuídas → detalhe do
+pedido → "Iniciar rastreamento" (dispara `useBroadcastLocation`, que é a
+contraparte do `DeliveryMap.jsx` do lado do cliente) → formulário de
+confirmação com foto (upload pra bucket `delivery-proofs`) e assinatura
+(canvas próprio, sem dependência externa, em `SignaturePad.jsx`).
+
+Esse é o fluxo que fecha o ciclo completo: produção (7 etapas) → rota ao
+vivo → confirmação de entrega com prova.
+
 ## Tracking de entrega ao vivo (Mapbox)
 
 Depois que o pedido chega em "Left for Delivery", o `CustomerOrderTracker`
